@@ -397,6 +397,10 @@ int print_route(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 	} else if (r->rtm_src_len) {
 		fprintf(fp, "from 0/%u ", r->rtm_src_len);
 	}
+	if (tb[RTA_VPLS_IF]) {
+		fprintf(fp, "vpls-dev %s ",
+			ll_index_to_name(rta_getattr_u32(tb[RTA_VPLS_IF])));
+	}
 	if (tb[RTA_NEWDST]) {
 		fprintf(fp, "as to %s ",
 		        format_host_rta(r->rtm_family, tb[RTA_NEWDST]));
@@ -1214,6 +1218,14 @@ static int iproute_modify(int cmd, unsigned int flags, int argc, char **argv)
 
 			addattr8(&req.n, sizeof(req), RTA_TTL_PROPAGATE,
 				 ttl_prop);
+		} else if (strcmp(*argv, "vpls-dev") == 0) {
+			int ifi;
+			NEXT_ARG();
+			if ((ifi = ll_name_to_index(*argv)) == 0) {
+				fprintf(stderr, "Cannot find device \"%s\"\n", *argv);
+				return -1;
+			}
+			addattr32(&req.n, sizeof(req), RTA_VPLS_IF, ifi);
 		} else {
 			int type;
 			inet_prefix dst;
