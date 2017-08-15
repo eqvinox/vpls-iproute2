@@ -204,6 +204,14 @@ int print_fdb(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 				rta_getattr_u32(tb[NDA_VNI]));
 	}
 
+	if (tb[NDA_VPLS_WIRE]) {
+		unsigned int wire = rta_getattr_u32(tb[NDA_VPLS_WIRE]);
+		if (jw_global)
+			jsonw_uint_field(jw_global, "pseudowire", wire);
+		else
+			fprintf(fp, "pseudowire %u ", wire);
+	}
+
 	if (tb[NDA_IFINDEX]) {
 		unsigned int ifindex = rta_getattr_u32(tb[NDA_IFINDEX]);
 
