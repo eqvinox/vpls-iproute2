@@ -23,7 +23,7 @@
 
 #include "rt_names.h"
 #include "utils.h"
-#include "iproute_lwtunnel.h"
+#include "lwtunnel.h"
 #include "bpf_util.h"
 
 #include <linux/seg6.h>
@@ -45,6 +45,8 @@ static const char *format_encap_type(int type)
 		return "bpf";
 	case LWTUNNEL_ENCAP_SEG6:
 		return "seg6";
+	case LWTUNNEL_ENCAP_PSEUDOWIRE:
+		return "pseudowire";
 	default:
 		return "unknown";
 	}
@@ -256,6 +258,17 @@ static void print_encap_bpf(FILE *fp, struct rtattr *encap)
 		fprintf(fp, "%d ", rta_getattr_u32(tb[LWT_BPF_XMIT_HEADROOM]));
 }
 
+static void print_encap_pseudowire(FILE *fp, struct rtattr *encap)
+{
+	struct rtattr *tb[LWT_PSEUDOWIRE_MAX+1];
+
+	parse_rtattr_nested(tb, LWT_PSEUDOWIRE_MAX, encap);
+
+	if (tb[LWT_PSEUDOWIRE_LOCAL_LABEL])
+		fprintf(fp, "local %u ",
+			rta_getattr_u32(tb[LWT_PSEUDOWIRE_LOCAL_LABEL]));
+}
+
 void lwt_print_encap(FILE *fp, struct rtattr *encap_type,
 			  struct rtattr *encap)
 {
@@ -286,6 +299,9 @@ void lwt_print_encap(FILE *fp, struct rtattr *encap_type,
 		break;
 	case LWTUNNEL_ENCAP_SEG6:
 		print_encap_seg6(fp, encap);
+		break;
+	case LWTUNNEL_ENCAP_PSEUDOWIRE:
+		print_encap_pseudowire(fp, encap);
 		break;
 	}
 }

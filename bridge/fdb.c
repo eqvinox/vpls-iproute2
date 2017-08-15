@@ -28,6 +28,7 @@
 #include "br_common.h"
 #include "rt_names.h"
 #include "utils.h"
+#include "lwtunnel.h"
 
 static unsigned int filter_index, filter_vlan, filter_state;
 
@@ -203,6 +204,9 @@ int print_fdb(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 			fprintf(fp, "vni %d ",
 				rta_getattr_u32(tb[NDA_VNI]));
 	}
+
+	if (tb[NDA_ENCAP_TYPE])
+		lwt_print_encap(fp, tb[NDA_ENCAP_TYPE], tb[NDA_ENCAP]);
 
 	if (tb[NDA_IFINDEX]) {
 		unsigned int ifindex = rta_getattr_u32(tb[NDA_IFINDEX]);
