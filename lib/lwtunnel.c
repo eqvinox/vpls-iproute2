@@ -47,6 +47,8 @@ static const char *format_encap_type(int type)
 		return "seg6";
 	case LWTUNNEL_ENCAP_PSEUDOWIRE:
 		return "pseudowire";
+	case LWTUNNEL_ENCAP_IEEE80211:
+		return "ieee802.11";
 	default:
 		return "unknown";
 	}
@@ -269,6 +271,20 @@ static void print_encap_pseudowire(FILE *fp, struct rtattr *encap)
 			rta_getattr_u32(tb[LWT_PSEUDOWIRE_LOCAL_LABEL]));
 }
 
+static void print_encap_ieee80211(FILE *fp, struct rtattr *encap)
+{
+	struct rtattr *tb[LWT_IEEE80211_MAX+1];
+	char buf[32];
+
+	parse_rtattr_nested(tb, LWT_IEEE80211_MAX, encap);
+
+	if (tb[LWT_IEEE80211_STA_ADDR])
+		fprintf(fp, "addr %s ",
+			ll_addr_n2a(RTA_DATA(tb[LWT_IEEE80211_STA_ADDR]),
+				RTA_PAYLOAD(tb[LWT_IEEE80211_STA_ADDR]),
+				0, buf, sizeof(buf)));
+}
+
 void lwt_print_encap(FILE *fp, struct rtattr *encap_type,
 			  struct rtattr *encap)
 {
@@ -302,6 +318,9 @@ void lwt_print_encap(FILE *fp, struct rtattr *encap_type,
 		break;
 	case LWTUNNEL_ENCAP_PSEUDOWIRE:
 		print_encap_pseudowire(fp, encap);
+		break;
+	case LWTUNNEL_ENCAP_IEEE80211:
+		print_encap_ieee80211(fp, encap);
 		break;
 	}
 }
