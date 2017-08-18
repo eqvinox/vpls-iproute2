@@ -19,6 +19,7 @@
 #include "br_common.h"
 #include "rt_names.h"
 #include "utils.h"
+#include "lwtunnel.h"
 
 #ifndef MDBA_RTA
 #define MDBA_RTA(r) \
@@ -194,6 +195,20 @@ static void print_mdb_entry(FILE *f, int ifindex, struct br_mdb_entry *e,
 				(int)tv.tv_usec/10000);
 		}
 	}
+
+	if (show_details && tb && tb[MDBA_MDB_EATTR_ENCAP_TYPE] && tb[MDBA_MDB_EATTR_ENCAP]) {
+		struct rtattr *etype = tb[MDBA_MDB_EATTR_ENCAP_TYPE];
+		struct rtattr *encap = tb[MDBA_MDB_EATTR_ENCAP];
+		struct rtattr *item = RTA_DATA(encap);
+		int len = RTA_PAYLOAD(encap);
+
+		while (RTA_OK(item, len)) {
+			fprintf(f, "\n\t");
+			lwt_print_encap(f, etype, item);
+			item = RTA_NEXT(item, len);
+		}
+	}
+
 	if (jw_global)
 		jsonw_end_object(jw_global);
 	else
