@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -345,7 +346,7 @@ int print_neigh(struct nlmsghdr *n, void *arg)
 		}
 	}
 
-	parse_rtattr(tb, NDA_MAX, NDA_RTA(r), n->nlmsg_len - NLMSG_LENGTH(sizeof(*r)));
+	parse_rtattr_flags(tb, NDA_MAX, NDA_RTA(r), n->nlmsg_len - NLMSG_LENGTH(sizeof(*r)), NLA_F_NESTED);
 
 	if (inet_addr_match_rta(&filter.pfx, tb[NDA_DST]))
 		return 0;
@@ -462,6 +463,38 @@ int print_neigh(struct nlmsghdr *n, void *arg)
 
 		print_string(PRINT_ANY, "protocol", "proto %s ",
 			     rtnl_rtprot_n2a(protocol, b1, sizeof(b1)));
+	}
+
+	if (tb[NDA_PIO_PREFIX]) {
+		struct rtattr *pio;
+
+		open_json_array(PRINT_JSON, "pios");
+
+		rtattr_for_each_nested(pio, tb[NDA_PIO_PREFIX]) {
+			struct rtattr *pio_attr[NDAPIO_MAX+1];
+
+			parse_rtattr_nested(pio_attr, ARRAY_SIZE(pio_attr) - 1, pio);
+
+			if (pio_attr[NDAPIO_PREFIX] && pio_attr[NDAPIO_PREFIXLEN]) {
+				const char *dst;
+				unsigned plen;
+				char prefix[39+1+3+1];
+
+				dst = format_host_rta(AF_INET6, pio_attr[NDAPIO_PREFIX]);
+				plen = rta_getattr_u8(pio_attr[NDAPIO_PREFIXLEN]);
+
+				open_json_object(NULL);
+				snprintf(prefix, sizeof(prefix), "%s/%d", dst, plen);
+				print_string(PRINT_ANY, "prefix", " pio %s", prefix);
+
+				if (pio_attr[NDAPIO_EXPIRY])
+					print_u64(PRINT_ANY, "expires", " expires %"PRIu64,
+						  rta_getattr_u64(pio_attr[NDAPIO_EXPIRY]));
+
+				close_json_object();
+			}
+		}
+		close_json_array(PRINT_JSON, NULL);
 	}
 
 	print_string(PRINT_FP, NULL, "\n", "");
